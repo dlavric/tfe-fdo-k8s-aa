@@ -1,90 +1,3 @@
-# DNS
-data "aws_route53_zone" "zone" {
-  name = var.tfe_domain
-}
-
-# Create DNS for the Load Balancer
-resource "aws_route53_record" "lb" {
-  zone_id = data.aws_route53_zone.zone.zone_id
-  name    = "${var.tfe_subdomain}.${data.aws_route53_zone.zone.name}"
-  type    = "CNAME"
-  ttl     = "300"
-  records = [aws_lb.tfe_lb.dns_name] #point it to the lb dns name
-}
-
-# Create DNS for the Bastion server
-resource "aws_route53_record" "bastion" {
-  zone_id = data.aws_route53_zone.zone.zone_id
-  name    = "${var.tfe_subdomain}.${data.aws_route53_zone.zone.name}-bastion"
-  type    = "A"
-  ttl     = "300"
-  records = [aws_eip.eip.public_ip]
-}
-
-
-# Create Certificates
-resource "tls_private_key" "private_key" {
-  algorithm = "RSA"
-}
-
-resource "acme_registration" "reg" {
-  account_key_pem = tls_private_key.private_key.private_key_pem
-  email_address   = var.email
-}
-
-resource "acme_certificate" "certificate" {
-  account_key_pem              = acme_registration.reg.account_key_pem
-  common_name                  = "${var.tfe_subdomain}.${data.aws_route53_zone.zone.name}"
-  subject_alternative_names    = ["${var.tfe_subdomain}.${data.aws_route53_zone.zone.name}"]
-  disable_complete_propagation = true
-
-  dns_challenge {
-    provider = "route53"
-    config = {
-      AWS_HOSTED_ZONE_ID = data.aws_route53_zone.zone.zone_id
-    }
-  }
-}
-
-# Add my certificates to a S3 Bucket
-resource "aws_s3_bucket" "s3bucket" {
-  bucket = var.certs_bucket
-
-  tags = {
-    Name        = "Daniela FDO Bucket"
-    Environment = "Dev"
-  }
-}
-
-resource "aws_s3_object" "object" {
-  for_each = toset(["certificate_pem", "issuer_pem", "private_key_pem"])
-  bucket   = aws_s3_bucket.s3bucket.bucket
-  key      = "ssl-certs/${each.key}"
-  content  = lookup(acme_certificate.certificate, "${each.key}")
-}
-
-resource "aws_s3_object" "object_full_chain" {
-  bucket  = aws_s3_bucket.s3bucket.bucket
-  key     = "ssl-certs/full_chain"
-  content = "${acme_certificate.certificate.certificate_pem}${acme_certificate.certificate.issuer_pem}"
-}
-
-# Add my TFE FDO license to a S3 Bucket
-resource "aws_s3_bucket" "s3bucket_license" {
-  bucket = var.license_bucket
-
-  tags = {
-    Name        = "Daniela FDO License"
-    Environment = "Dev"
-  }
-}
-
-resource "aws_s3_object" "object_license" {
-  bucket = aws_s3_bucket.s3bucket_license.bucket
-  key    = var.license_filename
-  source = var.license_filename
-}
-
 # Create network
 resource "aws_vpc" "vpc" {
   cidr_block       = "10.0.0.0/16"
@@ -95,23 +8,43 @@ resource "aws_vpc" "vpc" {
   }
 }
 
-resource "aws_subnet" "publicsub" {
+resource "aws_subnet" "publicsub1" {
   vpc_id            = aws_vpc.vpc.id
   cidr_block        = "10.0.1.0/24"
   availability_zone = "${var.aws_region}a"
 
   tags = {
-    Name = "daniela-public-subnet"
+    Name = "daniela-public-subnet1"
   }
 }
 
-resource "aws_subnet" "privatesub" {
+resource "aws_subnet" "publicsub2" {
+  vpc_id            = aws_vpc.vpc.id
+  cidr_block        = "10.0.1.0/24"
+  availability_zone = "${var.aws_region}a"
+
+  tags = {
+    Name = "daniela-public-subnet2"
+  }
+}
+
+resource "aws_subnet" "privatesub1" {
   vpc_id            = aws_vpc.vpc.id
   cidr_block        = "10.0.2.0/24"
   availability_zone = "${var.aws_region}c"
 
   tags = {
-    Name = "daniela-private-subnet"
+    Name = "daniela-private-subnet1"
+  }
+}
+
+resource "aws_subnet" "privatesub2" {
+  vpc_id            = aws_vpc.vpc.id
+  cidr_block        = "10.0.2.0/24"
+  availability_zone = "${var.aws_region}c"
+
+  tags = {
+    Name = "daniela-private-subnet2"
   }
 }
 
@@ -137,8 +70,13 @@ resource "aws_route_table" "route" {
   }
 }
 
-resource "aws_route_table_association" "route_association" {
-  subnet_id      = aws_subnet.publicsub.id
+resource "aws_route_table_association" "route_association1" {
+  subnet_id      = aws_subnet.publicsub1.id
+  route_table_id = aws_route_table.route.id
+}
+
+resource "aws_route_table_association" "route_association2" {
+  subnet_id      = aws_subnet.publicsub2.id
   route_table_id = aws_route_table.route.id
 }
 
@@ -174,6 +112,14 @@ resource "aws_security_group" "securitygp" {
     description = "redis-access"
     from_port   = 6379
     to_port     = 6379
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "redis-int-access"
+    from_port   = 6380
+    to_port     = 6380
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -226,69 +172,14 @@ resource "aws_route_table" "routenat" {
   }
 }
 
-resource "aws_route_table_association" "routenat_association" {
-  subnet_id      = aws_subnet.privatesub.id
+resource "aws_route_table_association" "routenat_association1" {
+  subnet_id      = aws_subnet.privatesub1.id
   route_table_id = aws_route_table.routenat.id
 }
 
-
-# Create network to attach to the Bastion server
-resource "aws_network_interface" "nic" {
-  subnet_id       = aws_subnet.publicsub.id
-  security_groups = [aws_security_group.securitygp.id]
-}
-
-
-# resource "aws_network_interface_sg_attachment" "sg_attachment" {
-#   #security_group_id    = aws_security_group.securitygp.id
-#   network_interface_id = aws_network_interface.nic.id
-# }
-
-
-resource "aws_eip" "eip" {
-  domain                    = "vpc"
-  associate_with_private_ip = aws_network_interface.nic.private_ip
-  instance                  = aws_instance.bastion.id
-
-  tags = {
-    Name = "daniela-eip"
-  }
-}
-
-resource "aws_eip" "nateip" {
-  domain                    = "vpc"
-  associate_with_private_ip = aws_network_interface.nic.private_ip
-
-  tags = {
-    Name = "daniela-eip-nat"
-  }
-}
-
-# Create Bastion Server/Jump host
-resource "aws_instance" "bastion" {
-  ami                  = var.ami # eu-west-2 
-  instance_type        = var.instance_type
-  iam_instance_profile = aws_iam_instance_profile.daniela-profile.name
-
-  credit_specification {
-    cpu_credits = "unlimited"
-  }
-
-  key_name = var.key_pair
-
-  root_block_device {
-    volume_size = 50
-  }
-
-  network_interface {
-    network_interface_id = aws_network_interface.nic.id
-    device_index         = 0
-  }
-
-  tags = {
-    Name = "daniela-tfe-bastion"
-  }
-
+resource "aws_route_table_association" "routenat_association2" {
+  subnet_id      = aws_subnet.privatesub2.id
+  route_table_id = aws_route_table.routenat.id
 }
 
 # Create roles and policies to attach to the instance
