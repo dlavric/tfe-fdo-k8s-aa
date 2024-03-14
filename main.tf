@@ -146,95 +146,6 @@ resource "aws_security_group" "securitygp" {
   }
 }
 
-resource "aws_nat_gateway" "nat" {
-  allocation_id = aws_eip.nateip.id
-  subnet_id     = aws_subnet.publicsub.id
-
-  tags = {
-    Name = "daniela-nat-gateway"
-  }
-
-  # To ensure proper ordering, it is recommended to add an explicit dependency
-  # on the Internet Gateway for the VPC.
-  depends_on = [aws_internet_gateway.internetgw]
-}
-
-resource "aws_route_table" "routenat" {
-  vpc_id = aws_vpc.vpc.id
-
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.nat.id
-  }
-
-  tags = {
-    Name = "daniela-routenat"
-  }
-}
-
-resource "aws_route_table_association" "routenat_association1" {
-  subnet_id      = aws_subnet.privatesub1.id
-  route_table_id = aws_route_table.routenat.id
-}
-
-resource "aws_route_table_association" "routenat_association2" {
-  subnet_id      = aws_subnet.privatesub2.id
-  route_table_id = aws_route_table.routenat.id
-}
-
-# Create roles and policies to attach to the instance
-resource "aws_iam_role" "daniela-role" {
-  name = "daniela-role-docker"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "ec2.amazonaws.com"
-        }
-      },
-    ]
-  })
-}
-
-resource "aws_iam_instance_profile" "daniela-profile" {
-  name = "daniela-profile-docker"
-  role = aws_iam_role.daniela-role.name
-}
-
-resource "aws_iam_role_policy" "daniela-policy" {
-  name = "daniela-policy-docker"
-  role = aws_iam_role.daniela-role.id
-
-  # Terraform's "jsonencode" function converts a
-  # Terraform expression result to valid JSON syntax.
-  policy = jsonencode({
-    "Version" : "2012-10-17",
-    "Statement" : [
-      {
-        "Effect" : "Allow",
-        "Action" : "s3:ListBucket",
-        "Resource" : "*"
-      },
-      {
-        "Effect" : "Allow",
-        "Action" : [
-          "s3:PutObject",
-          "s3:GetObject",
-          "s3:DeleteObject"
-        ],
-        "Resource" : [
-          "arn:aws:s3:::*/*"
-        ]
-      }
-    ]
-  })
-}
-
-
 
 # Create External Services: AWS S3 Bucket
 resource "aws_s3_bucket" "s3bucket_data" {
@@ -258,3 +169,35 @@ resource "aws_db_subnet_group" "db_subnet_group" {
 }
 
 
+resource "aws_db_instance" "tfe_db" {
+  allocated_storage      = 400
+  identifier             = var.db_identifier
+  db_name                = var.db_name
+  engine                 = "postgres"
+  engine_version         = "14.9"
+  instance_class         = "db.m5.xlarge"
+  username               = var.db_username
+  password               = var.db_password
+  parameter_group_name   = "default.postgres14"
+  skip_final_snapshot    = true
+  db_subnet_group_name   = aws_db_subnet_group.db_subnet_group.name
+  vpc_security_group_ids = [aws_security_group.securitygp.id]
+}
+
+# Create Redis instance
+resource "aws_elasticache_subnet_group" "redis_subnet_group" {
+  name       = "daniela-redis-subnetgroup"
+  subnet_ids = [aws_subnet.publicsub.id, aws_subnet.privatesub.id]
+}
+
+resource "aws_elasticache_cluster" "tfe_redis" {
+  cluster_id           = "daniela-tfe-redis"
+  engine               = "redis"
+  node_type            = "cache.t3.small"
+  num_cache_nodes      = 1
+  parameter_group_name = "default.redis7"
+  engine_version       = "7.1"
+  port                 = 6379
+  security_group_ids   = [aws_security_group.securitygp.id]
+  subnet_group_name    = aws_elasticache_subnet_group.redis_subnet_group.name
+}
