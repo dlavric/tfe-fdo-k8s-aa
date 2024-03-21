@@ -2,13 +2,13 @@ variable "aws_region" {
   description = "TFE region where to deploy the resources"
 }
 
-variable "ami" {
-  description = "The id of the AMI for the OS"
-}
+# variable "ami" {
+#   description = "The id of the AMI for the OS"
+# }
 
-variable "instance_type" {
-  description = "The instance type of the EC2 instance"
-}
+# variable "instance_type" {
+#   description = "The instance type of the EC2 instance"
+# }
 
 variable "tfe_version" {
   description = "The TFE version release from https://developer.hashicorp.com/terraform/enterprise/releases"

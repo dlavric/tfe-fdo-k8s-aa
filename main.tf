@@ -20,8 +20,8 @@ resource "aws_subnet" "publicsub1" {
 
 resource "aws_subnet" "publicsub2" {
   vpc_id            = aws_vpc.vpc.id
-  cidr_block        = "10.0.1.0/24"
-  availability_zone = "${var.aws_region}a"
+  cidr_block        = "10.0.3.0/24"
+  availability_zone = "${var.aws_region}b"
 
   tags = {
     Name = "daniela-public-subnet2"
@@ -31,7 +31,7 @@ resource "aws_subnet" "publicsub2" {
 resource "aws_subnet" "privatesub1" {
   vpc_id            = aws_vpc.vpc.id
   cidr_block        = "10.0.2.0/24"
-  availability_zone = "${var.aws_region}c"
+  availability_zone = "${var.aws_region}b"
 
   tags = {
     Name = "daniela-private-subnet1"
@@ -40,8 +40,8 @@ resource "aws_subnet" "privatesub1" {
 
 resource "aws_subnet" "privatesub2" {
   vpc_id            = aws_vpc.vpc.id
-  cidr_block        = "10.0.2.0/24"
-  availability_zone = "${var.aws_region}c"
+  cidr_block        = "10.0.4.0/24"
+  availability_zone = "${var.aws_region}a"
 
   tags = {
     Name = "daniela-private-subnet2"
@@ -161,7 +161,7 @@ resource "aws_s3_bucket" "s3bucket_data" {
 # Create External Services: Postgres 14.x DB
 resource "aws_db_subnet_group" "db_subnet_group" {
   name       = "daniela-db-subnetgroup"
-  subnet_ids = [aws_subnet.publicsub.id, aws_subnet.privatesub.id]
+  subnet_ids = [aws_subnet.publicsub1.id, aws_subnet.privatesub1.id]
 
   tags = {
     Name = "daniela-db-subnet-group"
@@ -187,7 +187,7 @@ resource "aws_db_instance" "tfe_db" {
 # Create Redis instance
 resource "aws_elasticache_subnet_group" "redis_subnet_group" {
   name       = "daniela-redis-subnetgroup"
-  subnet_ids = [aws_subnet.publicsub.id, aws_subnet.privatesub.id]
+  subnet_ids = [aws_subnet.publicsub1.id, aws_subnet.privatesub1.id]
 }
 
 resource "aws_elasticache_cluster" "tfe_redis" {

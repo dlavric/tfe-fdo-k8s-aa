@@ -42,7 +42,7 @@ resource "aws_iam_role_policy_attachment" "daniela-eks-cluster-policy" {
 
 resource "aws_iam_role_policy_attachment" "daniela-eks-vpc-controller-policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSVPCResourceController"
-  role       = aws_iam_role.k8s-cluster.name
+  role       = aws_iam_role.daniela-cluster-role.name
 }
 
 
