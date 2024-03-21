@@ -78,7 +78,17 @@ variable "db_password" {
   description = "The DB password"
 }
 
+variable "eks_desired_size" {
+  description = "The DB password"
+}
 
+variable "eks_max_size" {
+  description = "The DB password"
+}
+
+variable "eks_min_size" {
+  description = "The DB password"
+}
 
 
 
