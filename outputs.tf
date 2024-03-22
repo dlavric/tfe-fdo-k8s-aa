@@ -1,0 +1,1 @@
+#create outputs for all the data sources for the terraform.tfstate file to get the values with the remote backend

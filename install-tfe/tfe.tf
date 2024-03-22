@@ -85,6 +85,7 @@ resource "helm_release" "tfe_helm" {
 
   values = [
     templatefile("${path.module}/overrides.yaml", {
+      registry_server = var.registry_server
       tfe_hostname = var.tfe_hostname
       tfe_version  = var.tfe_version
       tfe_license  = var.raw_tfe_license

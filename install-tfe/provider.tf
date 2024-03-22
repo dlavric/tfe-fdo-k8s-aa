@@ -23,20 +23,20 @@ data "terraform_remote_state" "eks_cluster" {
   backend = "local"
 
   config = {
-    path = "${path.root}/terraform/tfstate"
+    path = "${path.root}/../terraform.tfstate"
   }
 }
 
 data "aws_eks_cluster" "my_eks_cluster" {
-  name = data.terraform_remote_state.eks.outputs.cluster_name
+  name = data.terraform_remote_state.eks_cluster.outputs.cluster_name
 }
 
 data "aws_eks_cluster_auth" "my_eks_auth" {
-  name = data.terraform_remote_state.eks.outputs.cluster_name
+  name = data.terraform_remote_state.eks_cluster.outputs.cluster_name
 }
 
 provider "aws" {
-  region = data.terraform_remote_state.my_eks_cluster.outputs.region
+  region = data.terraform_remote_state.eks_cluster.outputs.region
 }
 
 provider "acme" {
@@ -47,12 +47,12 @@ provider "helm" {
   kubernetes {
     host                   = data.aws_eks_cluster.my_eks_cluster.endpoint
     cluster_ca_certificate = base64decode(data.aws_eks_cluster.my_eks_cluster.certificate_authority[0].data)
-    token                  = data.aws_eks_cluster.my_eks_auth.token
+    token                  = data.aws_eks_cluster_auth.my_eks_auth.token
   }
 }
 
 provider "kubernetes" {
   host                   = data.aws_eks_cluster.my_eks_cluster.endpoint
   cluster_ca_certificate = base64decode(data.aws_eks_cluster.my_eks_cluster.certificate_authority[0].data)
-  token                  = data.aws_eks_cluster.my_eks_auth.token
+  token                  = data.aws_eks_cluster_auth.my_eks_auth.token
 }
