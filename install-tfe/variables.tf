@@ -31,15 +31,25 @@ variable "tfe_namespace" {
 }
 
 variable "registry_server" {
-  description = "URL to download the container image" 
+  description = "URL to download the container image"
 }
 
 variable "registry_username" {
-  description = "The username to be used for the registry" 
+  description = "The username to be used for the registry"
 }
 
 variable "raw_tfe_license" {
-  description = "The Raw TFE license" 
+  description = "The Raw TFE license"
 }
 
+# variable "tfe_license" {
+#   description = "The TFE License"
+# }
 
+variable "enc_password" {
+  description = "The encryption password for my TFE installation"
+}
+
+variable "replica_count" {
+  description = "How many replicas for TFE to be started"
+}

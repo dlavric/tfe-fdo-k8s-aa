@@ -58,7 +58,7 @@ resource "kubernetes_namespace" "tfe_namespace" {
 
 resource "kubernetes_secret" "tfe_secret" {
   metadata {
-    name = var.tfe_namespace
+    name      = var.tfe_namespace
     namespace = var.tfe_namespace
   }
 
@@ -77,7 +77,7 @@ resource "kubernetes_secret" "tfe_secret" {
   }
 }
 
-resource "helm_release" "example" {
+resource "helm_release" "tfe_helm" {
   name       = var.tfe_namespace
   namespace  = var.tfe_namespace
   repository = "https://helm.releases.hashicorp.com"
@@ -85,28 +85,48 @@ resource "helm_release" "example" {
 
   values = [
     templatefile("${path.module}/overrides.yaml", {
-      tfe_hostname     = var.tfe_hostname
-      tfe_version      = var.tfe_version,
-      tfe_license      = var.tfe_license
-      enc_password     = var.enc_password,
+      tfe_hostname = var.tfe_hostname
+      tfe_version  = var.tfe_version
+      tfe_license  = var.raw_tfe_license
+      enc_password = var.enc_password
       #email            = var.email,
       #username         = var.username,
       #password         = var.password,
-      db_host          = data.terraform_remote_state.eks_cluster.outputs.pg_address
-      db_name          = data.terraform_remote_state.eks_cluster.outputs.pg_dbname
-      db_username      = data.terraform_remote_state.eks_cluster.outputs.pg_user
-      db_password      = data.terraform_remote_state.eks_cluster.outputs.pg_password
-      aws_region       = data.terraform_remote_state.eks_cluster.outputs.region
+      db_host     = data.terraform_remote_state.eks_cluster.outputs.pg_address
+      db_name     = data.terraform_remote_state.eks_cluster.outputs.pg_dbname
+      db_username = data.terraform_remote_state.eks_cluster.outputs.pg_user
+      db_password = data.terraform_remote_state.eks_cluster.outputs.pg_password
+      aws_region  = data.terraform_remote_state.eks_cluster.outputs.region
       #certs_bucket     = var.certs_bucket,
-      storage_bucket   = data.terraform_remote_state.eks_cluster.outputs.s3_bucket
+      storage_bucket = data.terraform_remote_state.eks_cluster.outputs.s3_bucket
       #license_bucket   = var.license_bucket,
-      redis_address    = data.terraform_remote_state.eks_cluster.outputs.redis_host
-      redis_port       = data.terraform_remote_state.eks_cluster.outputs.redis_port
-      cert_data        = "${base64encode(acme_certificate.certificate.certificate_pem)}"
-      key_data         = "${base64encode(nonsensitive(acme_certificate.certificate.private_key_pem))}"
-      ca_cert_data     = "${base64encode(acme_certificate.certificate.issuer_pem)}"
-      replica_count    = var.replica_count
+      redis_address = data.terraform_remote_state.eks_cluster.outputs.redis_host
+      redis_port    = data.terraform_remote_state.eks_cluster.outputs.redis_port
+      cert_data     = "${base64encode(acme_certificate.certificate.certificate_pem)}"
+      key_data      = "${base64encode(nonsensitive(acme_certificate.certificate.private_key_pem))}"
+      ca_cert_data  = "${base64encode(acme_certificate.certificate.issuer_pem)}"
+      replica_count = var.replica_count
     })
   ]
 
+}
+
+data "kubernetes_service" "my_eks_service" {
+  metadata {
+    name      = var.tfe_namespace
+    namespace = var.tfe_namespace
+  }
+  depends_on = [helm_release.tfe_helm]
+}
+
+
+
+# Create DNS for the Load Balancer
+resource "aws_route53_record" "lb" {
+  zone_id    = data.aws_route53_zone.zone.zone_id
+  name       = "${var.tfe_subdomain}.${data.aws_route53_zone.zone.name}"
+  type       = "CNAME"
+  ttl        = "300"
+  records    = [data.kubernetes_service.my_eks_service.status.0.load_balancer.0.ingress.0.hostname]
+  depends_on = [helm_release.tfe_helm]
 }
