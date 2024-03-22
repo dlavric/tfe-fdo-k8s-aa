@@ -1,5 +1,5 @@
 #create IAM role for AWS EKS Cluster
-resource "aws_iam_role" "daniela-cluster-role" {
+resource "aws_iam_role" "daniela_cluster_role" {
   name = "daniela-cluster-eks-role"
 
   assume_role_policy = jsonencode({
@@ -17,7 +17,7 @@ resource "aws_iam_role" "daniela-cluster-role" {
 }
 
 #create IAM role for AWS EKS Node
-resource "aws_iam_role" "daniela-node-role" {
+resource "aws_iam_role" "daniela_node_role" {
   name = "daniela-node-eks-role"
 
   assume_role_policy = jsonencode({
@@ -35,45 +35,45 @@ resource "aws_iam_role" "daniela-node-role" {
 }
 
 #attach role policy for cluster
-resource "aws_iam_role_policy_attachment" "daniela-eks-cluster-policy" {
+resource "aws_iam_role_policy_attachment" "daniela_eks_cluster_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
-  role       = aws_iam_role.daniela-cluster-role.name
+  role       = aws_iam_role.daniela_cluster_role.name
 }
 
-resource "aws_iam_role_policy_attachment" "daniela-eks-vpc-controller-policy" {
+resource "aws_iam_role_policy_attachment" "daniela_eks_vpc_controller_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSVPCResourceController"
-  role       = aws_iam_role.daniela-cluster-role.name
+  role       = aws_iam_role.daniela_cluster_role.name
 }
 
 
 #attach role policy for node 
-resource "aws_iam_role_policy_attachment" "daniela-eks-worker-node-policy" {
+resource "aws_iam_role_policy_attachment" "daniela_eks_worker_node_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-  role       = aws_iam_role.daniela-node-role.name
+  role       = aws_iam_role.daniela_node_role.name
 }
 
 #attach role policy for node - EC2 container registry 
-resource "aws_iam_role_policy_attachment" "daniela-eks-ec2-container-policy" {
+resource "aws_iam_role_policy_attachment" "daniela_eks_ec2_container_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-  role       = aws_iam_role.daniela-node-role.name
+  role       = aws_iam_role.daniela_node_role.name
 }
 
 #attach role policy for node - EKS CNI Policy
-resource "aws_iam_role_policy_attachment" "daniela-eks-cni-policy" {
+resource "aws_iam_role_policy_attachment" "daniela_eks_cni_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-  role       = aws_iam_role.daniela-node-role.name
+  role       = aws_iam_role.daniela_node_role.name
 }
 
 #attach role policy for node - S3 Bucket
-resource "aws_iam_role_policy_attachment" "daniela-eks-s3-policy" {
+resource "aws_iam_role_policy_attachment" "daniela_eks_s3_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-  role       = aws_iam_role.daniela-node-role.name
+  role       = aws_iam_role.daniela_node_role.name
 }
 
 #create the EKS Cluster
-resource "aws_eks_cluster" "k8s-cluster" {
+resource "aws_eks_cluster" "k8s_cluster" {
   name     = "daniela-eks-cluster"
-  role_arn = aws_iam_role.daniela-cluster-role.arn
+  role_arn = aws_iam_role.daniela_cluster_role.arn
 
   vpc_config {
     subnet_ids = [aws_subnet.publicsub1.id, aws_subnet.publicsub2.id]
@@ -82,8 +82,8 @@ resource "aws_eks_cluster" "k8s-cluster" {
   # Ensure that IAM Role permissions are created before and deleted after EKS Cluster handling.
   # Otherwise, EKS will not be able to properly delete EKS managed EC2 infrastructure such as Security Groups.
   depends_on = [
-    aws_iam_role_policy_attachment.daniela-eks-cluster-policy,
-    aws_iam_role_policy_attachment.daniela-eks-vpc-controller-policy
+    aws_iam_role_policy_attachment.daniela_eks_cluster_policy,
+    aws_iam_role_policy_attachment.daniela_eks_vpc_controller_policy
   ]
 }
 
@@ -97,9 +97,9 @@ resource "aws_eks_cluster" "k8s-cluster" {
 
 #create the EKS nodes
 resource "aws_eks_node_group" "k8s-nodes" {
-  cluster_name    = aws_eks_cluster.k8s-cluster.name
+  cluster_name    = aws_eks_cluster.k8s_cluster.name
   node_group_name = "daniela-eks-node-group"
-  node_role_arn   = aws_iam_role.daniela-node-role.arn
+  node_role_arn   = aws_iam_role.daniela_node_role.arn
   subnet_ids      = [aws_subnet.publicsub1.id, aws_subnet.publicsub2.id]
   instance_types  = ["c4.2xlarge"]
 
@@ -112,9 +112,9 @@ resource "aws_eks_node_group" "k8s-nodes" {
   # Ensure that IAM Role permissions are created before and deleted after EKS Node Group handling.
   # Otherwise, EKS will not be able to properly delete EC2 Instances and Elastic Network Interfaces.
   depends_on = [
-    aws_iam_role_policy_attachment.daniela-eks-worker-node-policy,
-    aws_iam_role_policy_attachment.daniela-eks-cni-policy,
-    aws_iam_role_policy_attachment.daniela-eks-ec2-container-policy,
-    aws_iam_role_policy_attachment.daniela-eks-s3-policy
+    aws_iam_role_policy_attachment.daniela_eks_worker_node_policy,
+    aws_iam_role_policy_attachment.daniela_eks_cni_policy,
+    aws_iam_role_policy_attachment.daniela_eks_ec2_container_policy,
+    aws_iam_role_policy_attachment.daniela_eks_s3_policy
   ]
 }
