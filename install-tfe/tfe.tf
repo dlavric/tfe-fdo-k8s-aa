@@ -77,5 +77,36 @@ resource "kubernetes_secret" "tfe_secret" {
   }
 }
 
-# kubectl create secret docker-registry terraform-enterprise 
-#--docker-server=terraform-enterprise-beta.terraform.io --docker-username=$TFE_BETA_USERNAME --docker-password=$TFE_BETA_TOKEN  -n terraform-enterprise
+resource "helm_release" "example" {
+  name       = var.tfe_namespace
+  namespace  = var.tfe_namespace
+  repository = "https://helm.releases.hashicorp.com"
+  chart      = "hashicorp/terraform-enterprise"
+
+  values = [
+    templatefile("${path.module}/overrides.yaml", {
+      tfe_hostname     = var.tfe_hostname
+      tfe_version      = var.tfe_version,
+      tfe_license      = var.tfe_license
+      enc_password     = var.enc_password,
+      #email            = var.email,
+      #username         = var.username,
+      #password         = var.password,
+      db_host          = data.terraform_remote_state.eks_cluster.outputs.pg_address
+      db_name          = data.terraform_remote_state.eks_cluster.outputs.pg_dbname
+      db_username      = data.terraform_remote_state.eks_cluster.outputs.pg_user
+      db_password      = data.terraform_remote_state.eks_cluster.outputs.pg_password
+      aws_region       = data.terraform_remote_state.eks_cluster.outputs.region
+      #certs_bucket     = var.certs_bucket,
+      storage_bucket   = data.terraform_remote_state.eks_cluster.outputs.s3_bucket
+      #license_bucket   = var.license_bucket,
+      redis_address    = data.terraform_remote_state.eks_cluster.outputs.redis_host
+      redis_port       = data.terraform_remote_state.eks_cluster.outputs.redis_port
+      cert_data        = "${base64encode(acme_certificate.certificate.certificate_pem)}"
+      key_data         = "${base64encode(nonsensitive(acme_certificate.certificate.private_key_pem))}"
+      ca_cert_data     = "${base64encode(acme_certificate.certificate.issuer_pem)}"
+      replica_count    = var.replica_count
+    })
+  ]
+
+}
