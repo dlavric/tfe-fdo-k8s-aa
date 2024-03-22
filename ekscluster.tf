@@ -9,7 +9,7 @@ resource "aws_iam_role" "daniela-cluster-role" {
         Action = "sts:AssumeRole"
         Effect = "Allow"
         Principal = {
-          Service = "ec2.amazonaws.com"
+          Service = ["ec2.amazonaws.com", "eks.amazonaws.com"]
         }
       },
     ]
@@ -101,7 +101,7 @@ resource "aws_eks_node_group" "k8s-nodes" {
   node_group_name = "daniela-eks-node-group"
   node_role_arn   = aws_iam_role.daniela-node-role.arn
   subnet_ids      = [aws_subnet.publicsub1.id, aws_subnet.publicsub2.id]
-  instance_types  = ["c3.2xlarge"]
+  instance_types  = ["c4.2xlarge"]
 
   scaling_config {
     desired_size = var.eks_desired_size
