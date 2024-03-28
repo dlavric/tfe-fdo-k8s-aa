@@ -203,3 +203,17 @@ Events:
   ```shell
   kubectl logs -f terraform-enterprise-cdfd4b8d6-9c6mc -n terraform-enterprise
   ```
+
+
+
+## Uninstall TFE and remove the infrastructure
+- From the `install-tfe/` path run
+```shell
+terraform destroy
+```
+
+Go to the root path and destroy the infrastructure
+```shell
+cd ..
+terraform destroy
+```
