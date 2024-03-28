@@ -1,0 +1,29 @@
+replicaCount: ${replica_count}
+tls:
+  certData: ${cert_data}
+  keyData: ${key_data}
+  caCertData: ${ca_cert_data}
+image:
+  repository: ${registry_server}
+  name: hashicorp/terraform-enterprise
+  tag: ${tfe_version}
+env:
+  variables:
+    TFE_HOSTNAME: ${tfe_hostname}
+    TFE_OPERATIONAL_MODE: active-active
+    TFE_DATABASE_HOST: ${db_host}
+    TFE_DATABASE_NAME: ${db_name}
+    TFE_DATABASE_USER: ${db_username}
+    TFE_DATABASE_PARAMETERS: sslmode=disable
+    TFE_OBJECT_STORAGE_TYPE: s3
+    TFE_OBJECT_STORAGE_S3_BUCKET: ${storage_bucket}
+    TFE_OBJECT_STORAGE_S3_REGION: ${aws_region}
+    TFE_OBJECT_STORAGE_S3_USE_INSTANCE_PROFILE: true
+    TFE_REDIS_HOST: ${redis_address}:${redis_port}
+    TFE_REDIS_USE_AUTH: false
+    TFE_IACT_SUBNETS: "0.0.0.0/0"
+  secrets:
+    TFE_DATABASE_PASSWORD: ${db_password}
+    TFE_ENCRYPTION_PASSWORD:  ${enc_password}
+    TFE_OBJECT_STORAGE_S3_SERVER_SIDE_ENCRYPTION: AES256
+    TFE_LICENSE: ${tfe_license}
