@@ -168,3 +168,52 @@ NOTE: It might take up to 18-20 minutes to create the initial user until the DNS
 ```shell
 aws eks update-kubeconfig --region <your-region> --name <eks-cluster-name>
 ```
+
+- Check the pods
+```shell
+kubectl -n terraform-enterprise get pods
+```
+
+- Example output when the pod is running successfully
+```shell
+NAME                                   READY   STATUS    RESTARTS   AGE
+terraform-enterprise-cdfd4b8d6-9c6mc   1/1     Running   0          55m
+```
+
+- Check the details of the pod, where `terraform-enterprise-cdfd4b8d6-9c6mc` is the *NAME* of the pod
+```shell
+kubectl -n terraform-enterprise describe pods terraform-enterprise-cdfd4b8d6-9c6mc
+```
+
+- Example output for the pod
+```shell
+Events:
+  Type     Reason     Age                 From               Message
+  ----     ------     ----                ----               -------
+  Normal   Scheduled  56m                 default-scheduler  Successfully assigned terraform-enterprise/terraform-enterprise-cdfd4b8d6-9c6mc to ip-<ip>.eu-west-2.compute.internal
+  Normal   Pulling    56m                 kubelet            Pulling image "images.releases.hashicorp.com/hashicorp/terraform-enterprise:v202402-1"
+  Normal   Pulled     56m                 kubelet            Successfully pulled image "images.releases.hashicorp.com/hashicorp/terraform-enterprise:v202402-1" in 254ms (254ms including waiting)
+  Normal   Created    56m                 kubelet            Created container terraform-enterprise
+  Normal   Started    56m                 kubelet            Started container terraform-enterprise
+  Warning  Unhealthy  56m (x2 over 56m)   kubelet            Readiness probe failed: Get "http://<ip>:8080/_health_check": dial tcp <ip>>:8080: connect: connection refused
+  Warning  Unhealthy  53m (x19 over 56m)  kubelet            Readiness probe failed: HTTP probe failed with statuscode: 502
+  ```
+
+  - Check the logs of the container
+  ```shell
+  kubectl logs -f terraform-enterprise-cdfd4b8d6-9c6mc -n terraform-enterprise
+  ```
+
+
+
+## Uninstall TFE and remove the infrastructure
+- From the `install-tfe/` path run
+```shell
+terraform destroy
+```
+
+Go to the root path and destroy the infrastructure
+```shell
+cd ..
+terraform destroy
+```
