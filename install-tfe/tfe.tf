@@ -80,7 +80,7 @@ resource "kubernetes_secret" "tfe_secret" {
 resource "helm_release" "tfe_helm" {
   name       = var.tfe_namespace
   namespace  = var.tfe_namespace
-  repository = "https://helm.releases.hashicorp.com"
+  repository = "helm.releases.hashicorp.com"
   chart      = "hashicorp/terraform-enterprise"
 
   values = [
@@ -90,17 +90,12 @@ resource "helm_release" "tfe_helm" {
       tfe_version  = var.tfe_version
       tfe_license  = var.raw_tfe_license
       enc_password = var.enc_password
-      #email            = var.email,
-      #username         = var.username,
-      #password         = var.password,
       db_host     = data.terraform_remote_state.eks_cluster.outputs.pg_address
       db_name     = data.terraform_remote_state.eks_cluster.outputs.pg_dbname
       db_username = data.terraform_remote_state.eks_cluster.outputs.pg_user
       db_password = data.terraform_remote_state.eks_cluster.outputs.pg_password
       aws_region  = data.terraform_remote_state.eks_cluster.outputs.region
-      #certs_bucket     = var.certs_bucket,
       storage_bucket = data.terraform_remote_state.eks_cluster.outputs.s3_bucket
-      #license_bucket   = var.license_bucket,
       redis_address = data.terraform_remote_state.eks_cluster.outputs.redis_host
       redis_port    = data.terraform_remote_state.eks_cluster.outputs.redis_port
       cert_data     = "${base64encode(acme_certificate.certificate.certificate_pem)}"
@@ -109,6 +104,8 @@ resource "helm_release" "tfe_helm" {
       replica_count = var.replica_count
     })
   ]
+
+  depends_on = [ kubernetes_namespace.tfe_namespace ]
 
 }
 
@@ -129,5 +126,14 @@ resource "aws_route53_record" "lb" {
   type       = "CNAME"
   ttl        = "300"
   records    = [data.kubernetes_service.my_eks_service.status.0.load_balancer.0.ingress.0.hostname]
+  depends_on = [helm_release.tfe_helm]
+}
+
+# Create Admin user in TFE
+resource "null_resource" "commands" {
+
+  provisioner "local-exec" {
+    command = "bash tfe-create-admin-user.sh tfe-k8s.daniela.sbx.hashidemos.io daniela@tfe.com DanielaPassword"
+  }
   depends_on = [helm_release.tfe_helm]
 }

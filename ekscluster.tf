@@ -66,7 +66,7 @@ resource "aws_iam_role_policy_attachment" "daniela_eks_cni_policy" {
 
 #attach role policy for node - S3 Bucket
 resource "aws_iam_role_policy_attachment" "daniela_eks_s3_policy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
   role       = aws_iam_role.daniela_node_role.name
 }
 

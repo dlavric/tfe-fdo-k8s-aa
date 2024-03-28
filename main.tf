@@ -160,6 +160,36 @@ resource "aws_s3_bucket" "s3bucket_data" {
   }
 }
 
+# Create roles and policies to have access to the S3 bucket
+resource "aws_iam_role_policy" "daniela-policy" {
+  name = "daniela-policy-docker"
+  role = aws_iam_role.daniela_node_role.id
+
+  # Terraform's "jsonencode" function converts a
+  # Terraform expression result to valid JSON syntax.
+  policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Effect" : "Allow",
+        "Action" : "s3:ListBucket",
+        "Resource" : "*"
+      },
+      {
+        "Effect" : "Allow",
+        "Action" : [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:DeleteObject"
+        ],
+        "Resource" : [
+          "arn:aws:s3:::*/*"
+        ]
+      }
+    ]
+  })
+}
+
 # Create External Services: Postgres 14.x DB
 resource "aws_db_subnet_group" "db_subnet_group" {
   name       = "daniela-db-subnetgroup"
