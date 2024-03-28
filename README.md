@@ -206,13 +206,17 @@ Events:
 
 
 
+## TO DO How to upgrade your TFE version
+
+
+
 ## Uninstall TFE and remove the infrastructure
 - From the `install-tfe/` path run
 ```shell
 terraform destroy
 ```
 
-Go to the root path and destroy the infrastructure
+- Go to the root path and destroy the infrastructure
 ```shell
 cd ..
 terraform destroy
