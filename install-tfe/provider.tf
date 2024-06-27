@@ -2,19 +2,19 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "5.26.0"
+      version = "5.55.0"
     }
     acme = {
       source  = "vancluever/acme"
-      version = "2.17.2"
+      version = "2.23.2"
     }
     helm = {
       source  = "hashicorp/helm"
-      version = "2.12.1"
+      version = "2.14.0"
     }
     kubernetes = {
       source  = "hashicorp/kubernetes"
-      version = "2.27.0"
+      version = "2.31.0"
     }
   }
 }

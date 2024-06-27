@@ -51,6 +51,11 @@ resource "aws_s3_object" "object_full_chain" {
   content = "${acme_certificate.certificate.certificate_pem}${acme_certificate.certificate.issuer_pem}"
 }
 
+locals {
+  namespace = var.tfe_namespace
+  full_chain = "${acme_certificate.certificate.certificate_pem}${acme_certificate.certificate.issuer_pem}"
+}
+
 resource "kubernetes_namespace" "tfe_namespace" {
   metadata {
     name = var.tfe_namespace
@@ -87,22 +92,22 @@ resource "helm_release" "tfe_helm" {
   values = [
     templatefile("${path.module}/overrides.yaml", {
       registry_server = var.registry_server
-      tfe_hostname = var.tfe_hostname
-      tfe_version  = var.tfe_version
-      tfe_license  = var.raw_tfe_license
-      enc_password = var.enc_password
-      db_host     = data.terraform_remote_state.eks_cluster.outputs.pg_address
-      db_name     = data.terraform_remote_state.eks_cluster.outputs.pg_dbname
-      db_username = data.terraform_remote_state.eks_cluster.outputs.pg_user
-      db_password = data.terraform_remote_state.eks_cluster.outputs.pg_password
-      aws_region  = data.terraform_remote_state.eks_cluster.outputs.region
-      storage_bucket = data.terraform_remote_state.eks_cluster.outputs.s3_bucket
-      redis_address = data.terraform_remote_state.eks_cluster.outputs.redis_host
-      redis_port    = data.terraform_remote_state.eks_cluster.outputs.redis_port
-      cert_data     = "${base64encode(acme_certificate.certificate.certificate_pem)}"
+      tfe_hostname    = var.tfe_hostname
+      tfe_version     = var.tfe_version
+      tfe_license     = var.raw_tfe_license
+      enc_password    = var.enc_password
+      db_host         = data.terraform_remote_state.eks_cluster.outputs.pg_address
+      db_name         = data.terraform_remote_state.eks_cluster.outputs.pg_dbname
+      db_username     = data.terraform_remote_state.eks_cluster.outputs.pg_user
+      db_password     = data.terraform_remote_state.eks_cluster.outputs.pg_password
+      aws_region      = data.terraform_remote_state.eks_cluster.outputs.region
+      storage_bucket  = data.terraform_remote_state.eks_cluster.outputs.s3_bucket
+      redis_address   = data.terraform_remote_state.eks_cluster.outputs.redis_host
+      redis_port      = data.terraform_remote_state.eks_cluster.outputs.redis_port
+      cert_data     = "${base64encode(local.full_chain)}"
       key_data      = "${base64encode(nonsensitive(acme_certificate.certificate.private_key_pem))}"
-      ca_cert_data  = "${base64encode(acme_certificate.certificate.issuer_pem)}"
-      replica_count = var.replica_count
+      ca_cert_data  = "${base64encode(local.full_chain)}"
+      replica_count   = var.replica_count
     })
   ]
 
@@ -115,7 +120,7 @@ data "kubernetes_service" "my_eks_service" {
     name      = var.tfe_namespace
     namespace = var.tfe_namespace
   }
-  depends_on = [helm_release.tfe_helm]
+  depends_on = [helm_release.tfe_helm, kubernetes_namespace.tfe_namespace]
 }
 
 
@@ -130,11 +135,11 @@ resource "aws_route53_record" "lb" {
   depends_on = [helm_release.tfe_helm]
 }
 
-# Create Admin user in TFE
-resource "null_resource" "commands" {
+# # Create Admin user in TFE
+# resource "null_resource" "commands" {
 
-  provisioner "local-exec" {
-    command = "bash tfe-create-admin-user.sh tfe-k8s.daniela.sbx.hashidemos.io daniela@tfe.com DanielaPassword"
-  }
-  depends_on = [helm_release.tfe_helm]
-}
+#   provisioner "local-exec" {
+#     command = "bash tfe-create-admin-user.sh tfe-k8s.daniela.sbx.hashidemos.io daniela@tfe.com DanielaPassword"
+#   }
+#   depends_on = [helm_release.tfe_helm]
+# }

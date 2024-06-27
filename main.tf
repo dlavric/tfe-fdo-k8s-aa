@@ -171,20 +171,24 @@ resource "aws_iam_role_policy" "daniela-policy" {
     "Version" : "2012-10-17",
     "Statement" : [
       {
-        "Effect" : "Allow",
-        "Action" : "s3:ListBucket",
-        "Resource" : "*"
-      },
-      {
+        "Sid" : "VisualEditor0",
         "Effect" : "Allow",
         "Action" : [
           "s3:PutObject",
           "s3:GetObject",
-          "s3:DeleteObject"
+          "s3:ListBucket",
+          "s3:DeleteObject",
+          "s3:GetBucketLocation"
         ],
         "Resource" : [
-          "arn:aws:s3:::*/*"
+          "arn:aws:s3:::tfe-bucket",
         ]
+      },
+      {
+        "Sid" : "VisualEditor1",
+        "Effect" : "Allow",
+        "Action" : "s3:ListAllMyBuckets",
+        "Resource" : "*"
       }
     ]
   })
