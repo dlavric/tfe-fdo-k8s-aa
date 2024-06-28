@@ -139,7 +139,7 @@ resource "aws_route53_record" "lb" {
 # resource "null_resource" "commands" {
 
 #   provisioner "local-exec" {
-#     command = "bash tfe-create-admin-user.sh tfe-k8s.daniela.sbx.hashidemos.io daniela@tfe.com DanielaPassword"
+#     command = "bash tfe-create-admin-user.sh tfe-k8s1.daniela.sbx.hashidemos.io daniela@tfe.com DanielaPassword"
 #   }
 #   depends_on = [helm_release.tfe_helm]
 # }

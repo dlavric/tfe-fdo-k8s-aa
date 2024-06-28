@@ -2,11 +2,11 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "5.26.0"
+      version = "5.55.0"
     }
     acme = {
       source  = "vancluever/acme"
-      version = "2.17.2"
+      version = "2.23.2"
     }
   }
 }
